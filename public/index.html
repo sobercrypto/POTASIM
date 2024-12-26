@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Potato Game</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+
+        .potato-game {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .potato-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 4px;
+        }
+
+        .potato-button:hover {
+            background: #45a049;
+        }
+
+        .potato-slider {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .potato-timer {
+            background: black;
+            color: #4CAF50;
+            font-family: monospace;
+            font-size: 64px;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .potato-progress {
+            width: 100%;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .potato-progress-bar {
+            height: 100%;
+            background: #4CAF50;
+            transition: width 0.1s ease;
+        }
+
+        .potato-alert {
+            border-left: 4px solid #2196F3;
+            background: #E3F2FD;
+            padding: 15px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="potato-game-root"></div>
+
+    <script type="text/babel">
+        const generateScenario = async () => {
+            try {
+                const response = await fetch('/proxy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: "claude-3-sonnet-20240229",
+                        max_tokens: 1024,
+                        messages: [{
+                            role: "user",
+                            content: `Generate a quirky scenario for a potato baking game. Include both the scenario and potential outcomes. Use this exact JSON format:
+                            {
+                                "description": "[2-3 sentences describing an amusing situation involving potato baking. Include interesting characters, stakes, and circumstances. Mix between everyday situations (cooking for picky eaters, impressing dates) and mild fantastical elements (time travelers wanting historical potatoes, a potato cooking competition show)]",
+                                "category": "[one of: 'Family Drama', 'Food Competition', 'Historical', 'Scientific', 'Social Event', 'Magical Mishap']",
+                                "idealTemp": [temperature between 350-450],
+                                "idealTime": [cooking time between 20-90 minutes],
+                                "idealSize": [1 for small, 2 for medium, 3 for large],
+                                "hint": "[a clever cooking tip that relates to the scenario's story]",
+                                "outcomes": {
+                                    "perfect": "[enthusiastic response from the characters when the potato is perfect]",
+                                    "good": "[positive but not perfect reaction]",
+                                    "okay": "[humorous slightly disappointed reaction]",
+                                    "burnt": "[funny disaster reaction]",
+                                    "raw": "[comedic failure reaction]"
+                                }
+                            }`
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('API Error:', errorData);
+                    throw new Error(errorData.error || 'API request failed');
+                }
+
+                const data = await response.json();
+                const contentText = data.content[0].text;
+                return JSON.parse(contentText);
+
+            } catch (error) {
+                console.error('Error generating scenario:', error);
+                // Fallback scenario with more variety
+                return {
+                    description: "Your time-traveling grandmother has arrived from 1952 to judge your potato-baking skills against her famous recipe. She's brought her antique potato-rating kit and a very strong opinion about 'how things were done in her day.'",
+                    category: "Historical",
+                    idealTemp: 425,
+                    idealTime: 60,
+                    idealSize: 2,
+                    hint: "Remember, vintage recipes often used a pat of butter under the skin!",
+                    outcomes: {
+                        perfect: "Grandma tears up with joy: 'Just like I remember! You're officially keeper of the family potato tradition!'",
+                        good: "Grandma nods approvingly: 'Almost as good as mine in '52. Almost.'",
+                        okay: "Grandma sighs: 'Well, at least you didn't use that newfangled microwave...'",
+                        burnt: "Grandma pulls out her time-travel remote: 'I'm going back to teach your mother how to cook properly.'",
+                        raw: "Grandma shakes her head: 'In my day, we knew how to preheat an oven!'"
+                    }
+                };
+            }
+        };
+
+        // Function to determine outcome based on cooking parameters
+        const determineOutcome = (temperature, time, size, scenario) => {
+            const tempDiff = Math.abs(temperature - scenario.idealTemp);
+            const timeDiff = Math.abs(time - scenario.idealTime);
+            const sizeDiff = Math.abs(size - scenario.idealSize);
+
+            // Calculate overall accuracy (weighted scoring)
+            const tempWeight = 0.4;
+            const timeWeight = 0.4;
+            const sizeWeight = 0.2;
+
+            const tempScore = Math.max(0, 100 - (tempDiff * 2)); // Lose points faster for temp deviation
+            const timeScore = Math.max(0, 100 - (timeDiff * 3)); // Lose points faster for time deviation
+            const sizeScore = sizeDiff === 0 ? 100 : sizeDiff === 1 ? 50 : 0;
+
+            const totalScore = (tempScore * tempWeight) + (timeScore * timeWeight) + (sizeScore * sizeWeight);
+
+            // Return appropriate outcome based on score
+            if (totalScore >= 90) return { result: scenario.outcomes.perfect, score: totalScore };
+            if (totalScore >= 75) return { result: scenario.outcomes.good, score: totalScore };
+            if (totalScore >= 50) return { result: scenario.outcomes.okay, score: totalScore };
+            if (temperature > scenario.idealTemp + 75 || time > scenario.idealTime + 20) {
+                return { result: scenario.outcomes.burnt, score: totalScore };
+            }
+            return { result: scenario.outcomes.raw, score: totalScore };
+        };
+
+        
+        
+        import React, { useState, useEffect } from 'react';
+
+        const PotatoGame = () => {
+            const [temperature, setTemperature] = useState(350);
+            const [time, setTime] = useState(45);
+            const [size, setSize] = useState(2);
+            const [gameState, setGameState] = useState('setup');
+            const [result, setResult] = useState('');
+            const [progress, setProgress] = useState(0);
+            const [showHint, setShowHint] = useState(false);
+            const [timeElapsed, setTimeElapsed] = useState(0);
+            const [scenario, setScenario] = useState(null);
+            const [isDebugMode, setIsDebugMode] = useState(false);
+
+            // ... (keep your existing generateScenario and other utility functions)
+
+            const checkResult = () => {
+                setGameState('done');
+
+                if (!scenario) return;
+
+                // Using the enhanced determineOutcome function
+                const outcome = determineOutcome(temperature, time, size, scenario);
+                setResult(outcome.result);
+            };
+
+            useEffect(() => {
+                let intervalId;
+                if (gameState === 'cooking') {
+                    const startTime = Date.now();
+                    intervalId = setInterval(() => {
+                        const elapsed = (Date.now() - startTime) / 1000;
+                        const totalTime = time * 60;
+                        const progress = (elapsed / totalTime) * 100;
+
+                        if (progress >= 100) {
+                            clearInterval(intervalId);
+                            checkResult();
+                            setProgress(100);
+                        } else {
+                            setProgress(progress);
+                            setTimeElapsed(elapsed);
+                        }
+                    }, 50);
+                }
+                return () => clearInterval(intervalId);
+            }, [gameState, time]);
+
+            // Debug function to instantly complete cooking
+            const instantComplete = () => {
+                setProgress(100);
+                setTimeElapsed(time * 60);
+                checkResult();
+            };
+
+            // Toggle for debug mode
+            const toggleDebugMode = () => {
+                setIsDebugMode(!isDebugMode);
+            };
+
+            return (
+                <div className="potato-game">
+                    <h1 style={{ textAlign: 'center', marginBottom: '20px' }}>
+                        🥔 Potato Baking Game 🥔
+                        <button 
+                            onClick={toggleDebugMode}
+                            className="potato-button"
+                            style={{ 
+                                fontSize: '12px', 
+                                padding: '4px 8px',
+                                marginLeft: '10px',
+                                backgroundColor: isDebugMode ? '#ff4444' : '#4CAF50'
+                            }}
+                        >
+                            {isDebugMode ? 'Debug Mode ON' : 'Debug Mode'}
+                        </button>
+                    </h1>
+
+                    {/* Show debug panel when in debug mode */}
+                    {isDebugMode && gameState === 'cooking' && (
+                        <div className="potato-alert" style={{ marginBottom: '20px' }}>
+                            <h3>Debug Controls</h3>
+                            <button 
+                                className="potato-button"
+                                onClick={instantComplete}
+                                style={{ backgroundColor: '#ff4444' }}
+                            >
+                                Skip to Result
+                            </button>
+                        </div>
+                    )}
+
+                    {scenario && gameState === 'setup' && (
+                        <div className="potato-alert">
+                            <h3>Your Potato Situation:</h3>
+                            <p>{scenario.description}</p>
+                            <div style={{ color: '#666', fontSize: '0.9em' }}>
+                                Category: {scenario.category}
+                            </div>
+                            <button
+                                className="potato-button"
+                                onClick={() => setShowHint(!showHint)}
+                            >
+                                {showHint ? 'Hide Hint' : 'Need a Hint?'}
+                            </button>
+                            {showHint && (
+                                <p style={{ marginTop: '10px', color: '#2196F3' }}>{scenario.hint}</p>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Rest of your existing component JSX */}
+
+                    {gameState === 'done' && (
+                        <div style={{ textAlign: 'center' }}>
+                            <h2>{result}</h2>
+                            <div style={{ margin: '20px 0' }}>
+                                Your settings:
+                                <br />
+                                Temperature: {temperature}°F
+                                <br />
+                                Time: {time} minutes
+                                <br />
+                                Size: {size === 1 ? 'Small' : size === 2 ? 'Medium' : 'Large'}
+                                {isDebugMode && (
+                                    <>
+                                        <br />
+                                        <br />
+                                        <div style={{ color: '#666' }}>
+                                            Ideal Settings:
+                                            <br />
+                                            Temperature: {scenario?.idealTemp}°F
+                                            <br />
+                                            Time: {scenario?.idealTime} minutes
+                                            <br />
+                                            Size: {scenario?.idealSize}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                            <button
+                                className="potato-button"
+                                onClick={resetGame}
+                            >
+                                Try Another Potato
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        export default PotatoGame;
+
+        window.addEventListener('load', () => {
+            const root = ReactDOM.createRoot(document.getElementById('potato-game-root'));
+            root.render(<PotatoGame />);
+        });
+    </script>
+</body>
+</html>
