@@ -194,6 +194,19 @@
                 quickPreheat: false,
                 autoTimer: false
             });
+            const awardCoins = (score) => {
+                let coins = Math.floor(score / 2); // Base coins from score
+
+                // Bonus coins for perfect cooking
+                if (score >= 90) coins += 50;
+                else if (score >= 75) coins += 25;
+
+                // Bonus for challenging categories
+                if (scenario.category === 'Food Competition') coins *= 1.5;
+                if (scenario.category === 'Scientific') coins *= 1.2;
+
+                setSpudCoins(prev => prev + Math.floor(coins));
+            };
             // Initial scenario fetch
             React.useEffect(() => {
                 const fetchScenario = async () => {
@@ -239,6 +252,7 @@
                 if (!scenario) return;
                 const outcome = determineOutcome(temperature, time, size, scenario);
                 setResult(outcome.result);
+                awardCoins(outcome.score);
             };
 
             const resetGame = async () => {
@@ -266,24 +280,127 @@
 
             const remainingTime = time * 60 - timeElapsed;
 
+            const Store = ({ onClose, spudCoins, upgrades, onPurchase }) => {
+                const items = [
+                    {
+                        id: 'rgbLights',
+                        name: 'RGB Lighting',
+                        cost: 100,
+                        description: 'Add cool RGB lighting effects to your oven!',
+                        owned: upgrades.rgbLights
+                    },
+                    {
+                        id: 'precisionControl',
+                        name: 'Precision Control',
+                        cost: 200,
+                        description: 'More accurate temperature control (±5°F)',
+                        owned: upgrades.precisionControl
+                    },
+                    {
+                        id: 'quickPreheat',
+                        name: 'Quick Preheat',
+                        cost: 300,
+                        description: 'Oven preheats 25% faster',
+                        owned: upgrades.quickPreheat
+                    },
+                    {
+                        id: 'autoTimer',
+                        name: 'Auto Timer',
+                        cost: 400,
+                        description: 'Suggests optimal cooking time',
+                        owned: upgrades.autoTimer
+                    }
+                ];
+
+                const handlePurchase = (item) => {
+                    if (spudCoins >= item.cost && !item.owned) {
+                        onPurchase(item.id);
+                    }
+                };
+
+                return (
+                    <div className="potato-store-overlay">
+                        <div className="potato-store">
+                            <div className="store-header">
+                                <h2>Potato Store</h2>
+                                <div className="coin-display">🥔 {spudCoins} coins</div>
+                                <button 
+                                    className="potato-button"
+                                    onClick={onClose}
+                                    style={{ position: 'absolute', right: '10px', top: '10px' }}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                            <div className="store-items">
+                                {items.map(item => (
+                                    <div key={item.id} className="store-item">
+                                        <div className="item-info">
+                                            <h3>{item.name}</h3>
+                                            <p>{item.description}</p>
+                                            <div className="item-cost">
+                                                Cost: 🥔 {item.cost}
+                                            </div>
+                                        </div>
+                                        <button
+                                            className="potato-button"
+                                            onClick={() => handlePurchase(item)}
+                                            disabled={item.owned || spudCoins < item.cost}
+                                            style={{
+                                                backgroundColor: item.owned ? '#666' : 
+                                                               spudCoins < item.cost ? '#999' : '#4CAF50'
+                                            }}
+                                        >
+                                            {item.owned ? 'Owned' : spudCoins < item.cost ? 'Need more coins' : 'Purchase'}
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
             // Render
             return (
                 <div className="potato-game">
-                    <h1 style={{ textAlign: 'center', marginBottom: '20px' }}>
-                        🥔 Potato Baking Game 🥔
-                        <button 
-                            onClick={toggleDebugMode}
-                            className="potato-button"
-                            style={{ 
-                                fontSize: '12px', 
-                                padding: '4px 8px',
-                                marginLeft: '10px',
-                                backgroundColor: isDebugMode ? '#ff4444' : '#4CAF50'
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <h1>🥔 Potato Baking Game 🥔</h1>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <div className="coin-display">
+                                🥔 {spudCoins}
+                            </div>
+                            <button 
+                                className="potato-button"
+                                onClick={() => setShowStore(true)}
+                            >
+                                Store
+                            </button>
+                            <button 
+                                onClick={toggleDebugMode}
+                                className="potato-button"
+                                style={{ 
+                                    fontSize: '12px', 
+                                    padding: '4px 8px',
+                                    backgroundColor: isDebugMode ? '#ff4444' : '#4CAF50'
+                                }}
+                            >
+                                {isDebugMode ? 'Debug Mode ON' : 'Debug Mode'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {showStore && (
+                        <Store 
+                            onClose={() => setShowStore(false)}
+                            spudCoins={spudCoins}
+                            upgrades={upgrades}
+                            onPurchase={(itemId) => {
+                                setUpgrades(prev => ({...prev, [itemId]: true}));
+                                setSpudCoins(prev => prev - items.find(i => i.id === itemId).cost);
                             }}
-                        >
-                            {isDebugMode ? 'Debug Mode ON' : 'Debug Mode'}
-                        </button>
-                    </h1>
+                        />
+                    )}
 
                     {isDebugMode && gameState === 'cooking' && (
                         <div className="potato-alert" style={{ marginBottom: '20px' }}>
@@ -364,7 +481,10 @@
                                 height: '200px',
                                 backgroundColor: '#f5f5f5',
                                 borderRadius: '8px',
-                                marginBottom: '20px'
+                                marginBottom: '20px',
+                                ...(upgrades.rgbLights && {
+                                    animation: 'rgbBorder 5s infinite'
+                                })
                             }}>
                                 <div style={{
                                     position: 'absolute',
