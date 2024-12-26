@@ -83,6 +83,7 @@
     <div id="potato-game-root"></div>
 
     <script type="text/babel">
+        import React, { useState, useEffect } from 'react';
         const generateScenario = async () => {
             try {
                 const response = await fetch('/proxy', {
@@ -175,33 +176,41 @@
 
         
         
-        import React, { useState, useEffect } from 'react';
-
         const PotatoGame = () => {
-            const [temperature, setTemperature] = useState(350);
-            const [time, setTime] = useState(45);
-            const [size, setSize] = useState(2);
-            const [gameState, setGameState] = useState('setup');
-            const [result, setResult] = useState('');
-            const [progress, setProgress] = useState(0);
-            const [showHint, setShowHint] = useState(false);
-            const [timeElapsed, setTimeElapsed] = useState(0);
-            const [scenario, setScenario] = useState(null);
-            const [isDebugMode, setIsDebugMode] = useState(false);
+            const [temperature, setTemperature] = React.useState(350);
+            const [time, setTime] = React.useState(45);
+            const [size, setSize] = React.useState(2);
+            const [gameState, setGameState] = React.useState('setup');
+            const [result, setResult] = React.useState('');
+            const [progress, setProgress] = React.useState(0);
+            const [showHint, setShowHint] = React.useState(false);
+            const [timeElapsed, setTimeElapsed] = React.useState(0);
+            const [scenario, setScenario] = React.useState(null);
+            const [isDebugMode, setIsDebugMode] = React.useState(false);
 
-            // ... (keep your existing generateScenario and other utility functions)
+            React.useEffect(() => {
+                const fetchScenario = async () => {
+                    const generatedScenario = await generateScenario();
+                    setScenario(generatedScenario);
+                };
+                fetchScenario();
+            }, []);
+
+            const formatTime = (timeInSeconds) => {
+                const minutes = Math.floor(timeInSeconds / 60);
+                const seconds = Math.floor(timeInSeconds % 60);
+                const milliseconds = Math.floor((timeInSeconds % 1) * 1000);
+                return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`;
+            };
 
             const checkResult = () => {
                 setGameState('done');
-
                 if (!scenario) return;
-
-                // Using the enhanced determineOutcome function
                 const outcome = determineOutcome(temperature, time, size, scenario);
                 setResult(outcome.result);
             };
 
-            useEffect(() => {
+            React.useEffect(() => {
                 let intervalId;
                 if (gameState === 'cooking') {
                     const startTime = Date.now();
@@ -223,6 +232,19 @@
                 return () => clearInterval(intervalId);
             }, [gameState, time]);
 
+            const resetGame = async () => {
+                setGameState('setup');
+                setResult('');
+                setTemperature(350);
+                setTime(45);
+                setSize(2);
+                setProgress(0);
+                setShowHint(false);
+                setTimeElapsed(0);
+                const newScenario = await generateScenario();
+                setScenario(newScenario);
+            };
+
             // Debug function to instantly complete cooking
             const instantComplete = () => {
                 setProgress(100);
@@ -234,6 +256,8 @@
             const toggleDebugMode = () => {
                 setIsDebugMode(!isDebugMode);
             };
+
+            const remainingTime = time * 60 - timeElapsed;
 
             return (
                 <div className="potato-game">
@@ -253,7 +277,7 @@
                         </button>
                     </h1>
 
-                    {/* Show debug panel when in debug mode */}
+                    {/* Debug Panel */}
                     {isDebugMode && gameState === 'cooking' && (
                         <div className="potato-alert" style={{ marginBottom: '20px' }}>
                             <h3>Debug Controls</h3>
@@ -267,6 +291,7 @@
                         </div>
                     )}
 
+                    {/* Setup State */}
                     {scenario && gameState === 'setup' && (
                         <div className="potato-alert">
                             <h3>Your Potato Situation:</h3>
@@ -286,8 +311,103 @@
                         </div>
                     )}
 
-                    {/* Rest of your existing component JSX */}
+                    {gameState === 'setup' && (
+                        <div>
+                            <div style={{ marginBottom: '20px' }}>
+                                <label>Oven Temperature: {temperature}°F</label>
+                                <input
+                                    type="range"
+                                    className="potato-slider"
+                                    value={temperature}
+                                    onChange={(e) => setTemperature(parseInt(e.target.value))}
+                                    min={200}
+                                    max={500}
+                                    step={25}
+                                />
+                            </div>
 
+                            <div style={{ marginBottom: '20px' }}>
+                                <label>Cooking Time: {time} minutes</label>
+                                <input
+                                    type="range"
+                                    className="potato-slider"
+                                    value={time}
+                                    onChange={(e) => setTime(parseInt(e.target.value))}
+                                    min={15}
+                                    max={90}
+                                    step={5}
+                                />
+                            </div>
+
+                            <div style={{ marginBottom: '20px' }}>
+                                <label>Potato Size: {size === 1 ? 'Small' : size === 2 ? 'Medium' : 'Large'}</label>
+                                <input
+                                    type="range"
+                                    className="potato-slider"
+                                    value={size}
+                                    onChange={(e) => setSize(parseInt(e.target.value))}
+                                    min={1}
+                                    max={3}
+                                    step={1}
+                                />
+                            </div>
+
+                            <div style={{
+                                position: 'relative',
+                                width: '100%',
+                                height: '200px',
+                                backgroundColor: '#f5f5f5',
+                                borderRadius: '8px',
+                                marginBottom: '20px'
+                            }}>
+                                <div style={{
+                                    position: 'absolute',
+                                    left: '50%',
+                                    top: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: `${size * 64}px`,
+                                    height: `${size * 48}px`,
+                                    backgroundColor: '#8B4513',
+                                    borderRadius: '50%',
+                                    transition: 'all 0.3s ease'
+                                }} />
+                            </div>
+
+                            <button
+                                className="potato-button"
+                                style={{ width: '100%' }}
+                                onClick={() => {
+                                    setGameState('cooking');
+                                    setProgress(0);
+                                    setTimeElapsed(0);
+                                }}
+                            >
+                                Start Baking!
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Cooking State */}
+                    {gameState === 'cooking' && (
+                        <div>
+                            <div style={{ textAlign: 'center', fontSize: '24px', marginBottom: '20px' }}>
+                                Baking in progress... 🔥
+                            </div>
+
+                            <div className="potato-timer">
+                                {formatTime(remainingTime)}
+                            </div>
+
+                            <div className="potato-progress">
+                                <div
+                                    className="potato-progress-bar"
+                                    style={{ width: `${progress}%` }}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Done State */}
                     {gameState === 'done' && (
                         <div style={{ textAlign: 'center' }}>
                             <h2>{result}</h2>
@@ -326,9 +446,7 @@
                 </div>
             );
         };
-
         export default PotatoGame;
-
         window.addEventListener('load', () => {
             const root = ReactDOM.createRoot(document.getElementById('potato-game-root'));
             root.render(<PotatoGame />);
