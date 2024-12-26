@@ -83,7 +83,7 @@
     <div id="potato-game-root"></div>
 
     <script type="text/babel">
-        import React, { useState, useEffect } from 'react';
+        // Scenario generation function
         const generateScenario = async () => {
             try {
                 const response = await fetch('/proxy', {
@@ -117,9 +117,7 @@
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    console.error('API Error:', errorData);
-                    throw new Error(errorData.error || 'API request failed');
+                    throw new Error('API request failed');
                 }
 
                 const data = await response.json();
@@ -128,7 +126,6 @@
 
             } catch (error) {
                 console.error('Error generating scenario:', error);
-                // Fallback scenario with more variety
                 return {
                     description: "Your time-traveling grandmother has arrived from 1952 to judge your potato-baking skills against her famous recipe. She's brought her antique potato-rating kit and a very strong opinion about 'how things were done in her day.'",
                     category: "Historical",
@@ -147,24 +144,22 @@
             }
         };
 
-        // Function to determine outcome based on cooking parameters
+        // Outcome determination function
         const determineOutcome = (temperature, time, size, scenario) => {
             const tempDiff = Math.abs(temperature - scenario.idealTemp);
             const timeDiff = Math.abs(time - scenario.idealTime);
             const sizeDiff = Math.abs(size - scenario.idealSize);
-
-            // Calculate overall accuracy (weighted scoring)
+            
             const tempWeight = 0.4;
             const timeWeight = 0.4;
             const sizeWeight = 0.2;
-
-            const tempScore = Math.max(0, 100 - (tempDiff * 2)); // Lose points faster for temp deviation
-            const timeScore = Math.max(0, 100 - (timeDiff * 3)); // Lose points faster for time deviation
+            
+            const tempScore = Math.max(0, 100 - (tempDiff * 2));
+            const timeScore = Math.max(0, 100 - (timeDiff * 3));
             const sizeScore = sizeDiff === 0 ? 100 : sizeDiff === 1 ? 50 : 0;
-
+            
             const totalScore = (tempScore * tempWeight) + (timeScore * timeWeight) + (sizeScore * sizeWeight);
-
-            // Return appropriate outcome based on score
+            
             if (totalScore >= 90) return { result: scenario.outcomes.perfect, score: totalScore };
             if (totalScore >= 75) return { result: scenario.outcomes.good, score: totalScore };
             if (totalScore >= 50) return { result: scenario.outcomes.okay, score: totalScore };
@@ -176,7 +171,11 @@
 
         
         
+        
+        
+        // Main Game Component
         const PotatoGame = () => {
+            // State definitions
             const [temperature, setTemperature] = React.useState(350);
             const [time, setTime] = React.useState(45);
             const [size, setSize] = React.useState(2);
@@ -187,7 +186,15 @@
             const [timeElapsed, setTimeElapsed] = React.useState(0);
             const [scenario, setScenario] = React.useState(null);
             const [isDebugMode, setIsDebugMode] = React.useState(false);
-
+            const [spudCoins, setSpudCoins] = React.useState(0);
+            const [showStore, setShowStore] = React.useState(false);
+            const [upgrades, setUpgrades] = React.useState({
+                rgbLights: false,
+                precisionControl: false,
+                quickPreheat: false,
+                autoTimer: false
+            });
+            // Initial scenario fetch
             React.useEffect(() => {
                 const fetchScenario = async () => {
                     const generatedScenario = await generateScenario();
@@ -196,20 +203,7 @@
                 fetchScenario();
             }, []);
 
-            const formatTime = (timeInSeconds) => {
-                const minutes = Math.floor(timeInSeconds / 60);
-                const seconds = Math.floor(timeInSeconds % 60);
-                const milliseconds = Math.floor((timeInSeconds % 1) * 1000);
-                return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`;
-            };
-
-            const checkResult = () => {
-                setGameState('done');
-                if (!scenario) return;
-                const outcome = determineOutcome(temperature, time, size, scenario);
-                setResult(outcome.result);
-            };
-
+            // Timer effect
             React.useEffect(() => {
                 let intervalId;
                 if (gameState === 'cooking') {
@@ -232,6 +226,21 @@
                 return () => clearInterval(intervalId);
             }, [gameState, time]);
 
+            // Utility functions
+            const formatTime = (timeInSeconds) => {
+                const minutes = Math.floor(timeInSeconds / 60);
+                const seconds = Math.floor(timeInSeconds % 60);
+                const milliseconds = Math.floor((timeInSeconds % 1) * 1000);
+                return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`;
+            };
+
+            const checkResult = () => {
+                setGameState('done');
+                if (!scenario) return;
+                const outcome = determineOutcome(temperature, time, size, scenario);
+                setResult(outcome.result);
+            };
+
             const resetGame = async () => {
                 setGameState('setup');
                 setResult('');
@@ -245,20 +254,19 @@
                 setScenario(newScenario);
             };
 
-            // Debug function to instantly complete cooking
             const instantComplete = () => {
                 setProgress(100);
                 setTimeElapsed(time * 60);
                 checkResult();
             };
 
-            // Toggle for debug mode
             const toggleDebugMode = () => {
                 setIsDebugMode(!isDebugMode);
             };
 
             const remainingTime = time * 60 - timeElapsed;
 
+            // Render
             return (
                 <div className="potato-game">
                     <h1 style={{ textAlign: 'center', marginBottom: '20px' }}>
@@ -277,7 +285,6 @@
                         </button>
                     </h1>
 
-                    {/* Debug Panel */}
                     {isDebugMode && gameState === 'cooking' && (
                         <div className="potato-alert" style={{ marginBottom: '20px' }}>
                             <h3>Debug Controls</h3>
@@ -291,7 +298,6 @@
                         </div>
                     )}
 
-                    {/* Setup State */}
                     {scenario && gameState === 'setup' && (
                         <div className="potato-alert">
                             <h3>Your Potato Situation:</h3>
@@ -387,7 +393,6 @@
                         </div>
                     )}
 
-                    {/* Cooking State */}
                     {gameState === 'cooking' && (
                         <div>
                             <div style={{ textAlign: 'center', fontSize: '24px', marginBottom: '20px' }}>
@@ -407,7 +412,6 @@
                         </div>
                     )}
 
-                    {/* Done State */}
                     {gameState === 'done' && (
                         <div style={{ textAlign: 'center' }}>
                             <h2>{result}</h2>
@@ -419,20 +423,20 @@
                                 Time: {time} minutes
                                 <br />
                                 Size: {size === 1 ? 'Small' : size === 2 ? 'Medium' : 'Large'}
-                                {isDebugMode && (
-                                    <>
+                                {isDebugMode && scenario && (
+                                    <div>
                                         <br />
                                         <br />
                                         <div style={{ color: '#666' }}>
                                             Ideal Settings:
                                             <br />
-                                            Temperature: {scenario?.idealTemp}°F
+                                            Temperature: {scenario.idealTemp}°F
                                             <br />
-                                            Time: {scenario?.idealTime} minutes
+                                            Time: {scenario.idealTime} minutes
                                             <br />
-                                            Size: {scenario?.idealSize}
+                                            Size: {scenario.idealSize}
                                         </div>
-                                    </>
+                                    </div>
                                 )}
                             </div>
                             <button
@@ -446,10 +450,13 @@
                 </div>
             );
         };
-        export default PotatoGame;
+
+        // Initialize the React app
         window.addEventListener('load', () => {
-            const root = ReactDOM.createRoot(document.getElementById('potato-game-root'));
-            root.render(<PotatoGame />);
+            ReactDOM.render(
+                <PotatoGame />,
+                document.getElementById('potato-game-root')
+            );
         });
     </script>
 </body>
