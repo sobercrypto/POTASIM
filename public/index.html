@@ -347,6 +347,14 @@
         // Main Game Component
         const PotatoGame = () => {
             // State definitions
+            const [spudCoins, setSpudCoins] = React.useState(0);
+            const [showStore, setShowStore] = React.useState(false);
+            const [upgrades, setUpgrades] = React.useState({
+                rgbLights: false,
+                precisionControl: false,
+                quickPreheat: false,
+                autoTimer: false
+            });
             const [temperature, setTemperature] = React.useState(350);
             const [time, setTime] = React.useState(45);
             const [size, setSize] = React.useState(2);
@@ -357,21 +365,8 @@
             const [timeElapsed, setTimeElapsed] = React.useState(0);
             const [scenario, setScenario] = React.useState(null);
             const [isDebugMode, setIsDebugMode] = React.useState(false);
-            const [spudCoins, setSpudCoins] = React.useState(0);
-            const [showStore, setShowStore] = React.useState(false);
-            const [upgrades, setUpgrades] = React.useState({
-                rgbLights: false,
-                precisionControl: false,
-                quickPreheat: false,
-                autoTimer: false
-            const [spudCoins, setSpudCoins] = React.useState(0);
-            const [showStore, setShowStore] = React.useState(false);
-            const [upgrades, setUpgrades] = React.useState({
-                rgbLights: false,
-                precisionControl: false,
-                quickPreheat: false,
-                autoTimer: false
-            });
+
+
             const awardCoins = (score) => {
                 let coins = Math.floor(score / 2); // Base coins from score
 
@@ -385,6 +380,8 @@
 
                 setSpudCoins(prev => prev + Math.floor(coins));
             };
+            
+            
             // Initial scenario fetch
             React.useEffect(() => {
                 const fetchScenario = async () => {
@@ -430,7 +427,7 @@
                 if (!scenario) return;
                 const outcome = determineOutcome(temperature, time, size, scenario);
                 setResult(outcome.result);
-                awardCoins(outcome.score);
+                awardCoins(outcome.score); // Add this line
             };
 
             const resetGame = async () => {
@@ -575,7 +572,7 @@
                             upgrades={upgrades}
                             onPurchase={(itemId) => {
                                 setUpgrades(prev => ({...prev, [itemId]: true}));
-                                setSpudCoins(prev => prev - items.find(i => i.id === itemId).cost);
+                                setSpudCoins(prev => prev - STORE_ITEMS.find(i => i.id === itemId).cost); // Using STORE_ITEMS instead
                             }}
                         />
                     )}
