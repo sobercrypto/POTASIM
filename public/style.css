@@ -299,3 +299,70 @@ h2 {
 .coin-earned {
     animation: coinPop 0.5s ease;
 }
+const styles = `
+.utensil-tray {
+    background: #fff;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 20px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.utensils-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.utensil-item {
+    border: 2px solid #eee;
+    border-radius: 8px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.utensil-item:hover {
+    border-color: #4CAF50;
+    transform: translateY(-2px);
+}
+
+.utensil-used {
+    border-color: #4CAF50;
+    background: #f0f9f0;
+}
+
+.utensil-disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.utensil-icon {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+.utensil-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.utensil-description {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.utensil-status {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #4CAF50;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+}
+`;

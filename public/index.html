@@ -355,6 +355,12 @@
                 quickPreheat: false,
                 autoTimer: false
             });
+            const [usedUtensils, setUsedUtensils] = React.useState({
+                fork: false,
+                foil: false,
+                oil: false,
+                seasoning: false
+            });
             const [temperature, setTemperature] = React.useState(350);
             const [time, setTime] = React.useState(45);
             const [size, setSize] = React.useState(2);
@@ -366,6 +372,42 @@
             const [scenario, setScenario] = React.useState(null);
             const [isDebugMode, setIsDebugMode] = React.useState(false);
 
+            const determineOutcome = (temperature, time, size, scenario, usedUtensils) => {
+                const tempDiff = Math.abs(temperature - scenario.idealTemp);
+                const timeDiff = Math.abs(time - scenario.idealTime);
+                const sizeDiff = Math.abs(size - scenario.idealSize);
+
+                // Base scoring (your existing logic)
+                const tempWeight = 0.4;
+                const timeWeight = 0.4;
+                const sizeWeight = 0.2;
+
+                let tempScore = Math.max(0, 100 - (tempDiff * 2));
+                let timeScore = Math.max(0, 100 - (timeDiff * 3));
+                let sizeScore = sizeDiff === 0 ? 100 : sizeDiff === 1 ? 50 : 0;
+
+                // Utensil bonuses
+                if (usedUtensils.fork) {
+                    // Fork helps with even cooking
+                    timeScore *= 1.1;
+                }
+                if (usedUtensils.foil) {
+                    // Foil helps maintain temperature
+                    tempScore *= 1.15;
+                }
+                if (usedUtensils.oil) {
+                    // Oil helps with crispy skin
+                    timeScore *= 1.1;
+                    tempScore *= 1.05;
+                }
+                if (usedUtensils.seasoning) {
+                    // Seasoning adds a flat bonus
+                    sizeScore *= 1.2;
+                }
+
+                const totalScore = (tempScore * tempWeight) + (timeScore * timeWeight) + (sizeScore * sizeWeight);
+                // ... rest of your outcome logic
+            };
 
             const awardCoins = (score) => {
                 let coins = Math.floor(score / 2); // Base coins from score
@@ -608,9 +650,18 @@
                             )}
                         </div>
                     )}
-
+                    
+                  
+                    
                     {gameState === 'setup' && (
                         <div>
+                            <UtensilTray 
+                                usedUtensils={usedUtensils}
+                                setUsedUtensils={setUsedUtensils}
+                                gameState={gameState}
+                            />
+                            </div>
+                            
                             <div style={{ marginBottom: '20px' }}>
                                 <label>Oven Temperature: {temperature}°F</label>
                                 <input
