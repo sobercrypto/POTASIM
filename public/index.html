@@ -154,7 +154,8 @@
             font-weight: bold;
             color: #4CAF50;
         }
-        const styles = `
+
+        /* Additional styles */
         .utensil-tray {
             background: #fff;
             border-radius: 8px;
@@ -220,7 +221,7 @@
             border-radius: 4px;
             font-size: 0.8em;
         }
-        `;
+
         /* RGB Lighting Effect */
         @keyframes rgbBorder {
             0% { box-shadow: 0 0 10px rgba(255,0,0,0.5); }
@@ -232,7 +233,7 @@
         .rgb-enabled {
             animation: rgbBorder 5s infinite;
         }
-      </style>
+    </style>
 </head>
 <body>
     <div id="potato-game-root"></div>
@@ -321,6 +322,7 @@
                 </div>
             );
         };
+
         // Scenario generation function
         const generateScenario = async () => {
             try {
@@ -407,10 +409,51 @@
             return { result: scenario.outcomes.raw, score: totalScore };
         };
 
-        
-        
-        
-        
+        // UtensilTray Component (Assuming it's defined elsewhere)
+        const UtensilTray = ({ usedUtensils, setUsedUtensils, gameState }) => {
+            // Component implementation...
+            return (
+                <div className="utensil-tray">
+                    <h3>Select Utensils:</h3>
+                    <div className="utensils-container">
+                        {/* Utensil items */}
+                        <div 
+                            className={`utensil-item ${usedUtensils.fork ? 'utensil-used' : ''}`}
+                            onClick={() => setUsedUtensils(prev => ({...prev, fork: !prev.fork}))}
+                        >
+                            <div className="utensil-icon">🍴</div>
+                            <div className="utensil-name">Fork</div>
+                            <div className="utensil-description">Helps poke holes for even cooking.</div>
+                        </div>
+                        <div 
+                            className={`utensil-item ${usedUtensils.foil ? 'utensil-used' : ''}`}
+                            onClick={() => setUsedUtensils(prev => ({...prev, foil: !prev.foil}))}
+                        >
+                            <div className="utensil-icon">🥫</div>
+                            <div className="utensil-name">Aluminum Foil</div>
+                            <div className="utensil-description">Maintains oven temperature.</div>
+                        </div>
+                        <div 
+                            className={`utensil-item ${usedUtensils.oil ? 'utensil-used' : ''}`}
+                            onClick={() => setUsedUtensils(prev => ({...prev, oil: !prev.oil}))}
+                        >
+                            <div className="utensil-icon">🫒</div>
+                            <div className="utensil-name">Oil</div>
+                            <div className="utensil-description">Ensures crispy skin.</div>
+                        </div>
+                        <div 
+                            className={`utensil-item ${usedUtensils.seasoning ? 'utensil-used' : ''}`}
+                            onClick={() => setUsedUtensils(prev => ({...prev, seasoning: !prev.seasoning}))}
+                        >
+                            <div className="utensil-icon">🧂</div>
+                            <div className="utensil-name">Seasoning</div>
+                            <div className="utensil-description">Adds flavor.</div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         // Main Game Component
         const PotatoGame = () => {
             // State definitions
@@ -473,7 +516,14 @@
                 }
 
                 const totalScore = (tempScore * tempWeight) + (timeScore * timeWeight) + (sizeScore * sizeWeight);
-                // ... rest of your outcome logic
+                // Determine outcome based on totalScore
+                if (totalScore >= 90) return { result: scenario.outcomes.perfect, score: totalScore };
+                if (totalScore >= 75) return { result: scenario.outcomes.good, score: totalScore };
+                if (totalScore >= 50) return { result: scenario.outcomes.okay, score: totalScore };
+                if (temperature > scenario.idealTemp + 75 || time > scenario.idealTime + 20) {
+                    return { result: scenario.outcomes.burnt, score: totalScore };
+                }
+                return { result: scenario.outcomes.raw, score: totalScore };
             };
 
             const awardCoins = (score) => {
@@ -534,7 +584,7 @@
             const checkResult = () => {
                 setGameState('done');
                 if (!scenario) return;
-                const outcome = determineOutcome(temperature, time, size, scenario);
+                const outcome = determineOutcome(temperature, time, size, scenario, usedUtensils);
                 setResult(outcome.result);
                 awardCoins(outcome.score); // Add this line
             };
@@ -577,87 +627,6 @@
             };
 
             const remainingTime = time * 60 - timeElapsed;
-
-            const Store = ({ onClose, spudCoins, upgrades, onPurchase }) => {
-                const items = [
-                    {
-                        id: 'rgbLights',
-                        name: 'RGB Lighting',
-                        cost: 100,
-                        description: 'Add cool RGB lighting effects to your oven!',
-                        owned: upgrades.rgbLights
-                    },
-                    {
-                        id: 'precisionControl',
-                        name: 'Precision Control',
-                        cost: 200,
-                        description: 'More accurate temperature control (±5°F)',
-                        owned: upgrades.precisionControl
-                    },
-                    {
-                        id: 'quickPreheat',
-                        name: 'Quick Preheat',
-                        cost: 300,
-                        description: 'Oven preheats 25% faster',
-                        owned: upgrades.quickPreheat
-                    },
-                    {
-                        id: 'autoTimer',
-                        name: 'Auto Timer',
-                        cost: 400,
-                        description: 'Suggests optimal cooking time',
-                        owned: upgrades.autoTimer
-                    }
-                ];
-
-                const handlePurchase = (item) => {
-                    if (spudCoins >= item.cost && !item.owned) {
-                        onPurchase(item.id);
-                    }
-                };
-
-                return (
-                    <div className="potato-store-overlay">
-                        <div className="potato-store">
-                            <div className="store-header">
-                                <h2>Potato Store</h2>
-                                <div className="coin-display">🥔 {spudCoins} coins</div>
-                                <button 
-                                    className="potato-button"
-                                    onClick={onClose}
-                                    style={{ position: 'absolute', right: '10px', top: '10px' }}
-                                >
-                                    Close
-                                </button>
-                            </div>
-                            <div className="store-items">
-                                {items.map(item => (
-                                    <div key={item.id} className="store-item">
-                                        <div className="item-info">
-                                            <h3>{item.name}</h3>
-                                            <p>{item.description}</p>
-                                            <div className="item-cost">
-                                                Cost: 🥔 {item.cost}
-                                            </div>
-                                        </div>
-                                        <button
-                                            className="potato-button"
-                                            onClick={() => handlePurchase(item)}
-                                            disabled={item.owned || spudCoins < item.cost}
-                                            style={{
-                                                backgroundColor: item.owned ? '#666' : 
-                                                               spudCoins < item.cost ? '#999' : '#4CAF50'
-                                            }}
-                                        >
-                                            {item.owned ? 'Owned' : spudCoins < item.cost ? 'Need more coins' : 'Purchase'}
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
 
             // Render
             return (
@@ -732,93 +701,93 @@
                         </div>
                     )}
                     
-                  
-                    
                     {gameState === 'setup' && (
                         <div>
-                            <UtensilTray 
-                                usedUtensils={usedUtensils}
-                                setUsedUtensils={setUsedUtensils}
-                                gameState={gameState}
-                            />
+                            {/* Wrapped all adjacent JSX elements inside a single parent div */}
+                            <div>
+                                <UtensilTray 
+                                    usedUtensils={usedUtensils}
+                                    setUsedUtensils={setUsedUtensils}
+                                    gameState={gameState}
+                                />
                             </div>
                             
-                                <div style={{ marginBottom: '20px' }}>
-                                    <label>Oven Temperature: {temperature}°F</label>
-                                    <input
-                                        type="range"
-                                        className="potato-slider"
-                                        value={temperature}
-                                        onChange={(e) => setTemperature(parseInt(e.target.value))}
-                                        min={200}
-                                        max={500}
-                                        step={25}
-                                    />
-                                </div>
-
-                                <div style={{ marginBottom: '20px' }}>
-                                    <label>Cooking Time: {time} minutes</label>
-                                    <input
-                                        type="range"
-                                        className="potato-slider"
-                                        value={time}
-                                        onChange={(e) => setTime(parseInt(e.target.value))}
-                                        min={15}
-                                        max={90}
-                                        step={5}
-                                    />
-                                </div>
-
-                                <div style={{ marginBottom: '20px' }}>
-                                    <label>Potato Size: {size === 1 ? 'Small' : size === 2 ? 'Medium' : 'Large'}</label>
-                                    <input
-                                        type="range"
-                                        className="potato-slider"
-                                        value={size}
-                                        onChange={(e) => setSize(parseInt(e.target.value))}
-                                        min={1}
-                                        max={3}
-                                        step={1}
-                                    />
-                                </div>
-
-                                <div style={{
-                                    position: 'relative',
-                                    width: '100%',
-                                    height: '200px',
-                                    backgroundColor: '#f5f5f5',
-                                    borderRadius: '8px',
-                                    marginBottom: '20px',
-                                    ...(upgrades.rgbLights && {
-                                        animation: 'rgbBorder 5s infinite'
-                                    })
-                                }}>
-                                    <div style={{
-                                        position: 'absolute',
-                                        left: '50%',
-                                        top: '50%',
-                                        transform: 'translate(-50%, -50%)',
-                                        width: `${size * 64}px`,
-                                        height: `${size * 48}px`,
-                                        backgroundColor: '#8B4513',
-                                        borderRadius: '50%',
-                                        transition: 'all 0.3s ease'
-                                    }} />
-                                </div>
-
-                                <button
-                                    className="potato-button"
-                                    style={{ width: '100%' }}
-                                    onClick={() => {
-                                        setGameState('cooking');
-                                        setProgress(0);
-                                        setTimeElapsed(0);
-                                    }}
-                                >
-                                    Start Baking!
-                                </button>
+                            <div style={{ marginBottom: '20px' }}>
+                                <label>Oven Temperature: {temperature}°F</label>
+                                <input
+                                    type="range"
+                                    className="potato-slider"
+                                    value={temperature}
+                                    onChange={(e) => setTemperature(parseInt(e.target.value))}
+                                    min={200}
+                                    max={500}
+                                    step={25}
+                                />
                             </div>
-                        )}
+
+                            <div style={{ marginBottom: '20px' }}>
+                                <label>Cooking Time: {time} minutes</label>
+                                <input
+                                    type="range"
+                                    className="potato-slider"
+                                    value={time}
+                                    onChange={(e) => setTime(parseInt(e.target.value))}
+                                    min={15}
+                                    max={90}
+                                    step={5}
+                                />
+                            </div>
+
+                            <div style={{ marginBottom: '20px' }}>
+                                <label>Potato Size: {size === 1 ? 'Small' : size === 2 ? 'Medium' : 'Large'}</label>
+                                <input
+                                    type="range"
+                                    className="potato-slider"
+                                    value={size}
+                                    onChange={(e) => setSize(parseInt(e.target.value))}
+                                    min={1}
+                                    max={3}
+                                    step={1}
+                                />
+                            </div>
+
+                            <div style={{
+                                position: 'relative',
+                                width: '100%',
+                                height: '200px',
+                                backgroundColor: '#f5f5f5',
+                                borderRadius: '8px',
+                                marginBottom: '20px',
+                                ...(upgrades.rgbLights && {
+                                    animation: 'rgbBorder 5s infinite'
+                                })
+                            }}>
+                                <div style={{
+                                    position: 'absolute',
+                                    left: '50%',
+                                    top: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: `${size * 64}px`,
+                                    height: `${size * 48}px`,
+                                    backgroundColor: '#8B4513',
+                                    borderRadius: '50%',
+                                    transition: 'all 0.3s ease'
+                                }} />
+                            </div>
+
+                            <button
+                                className="potato-button"
+                                style={{ width: '100%' }}
+                                onClick={() => {
+                                    setGameState('cooking');
+                                    setProgress(0);
+                                    setTimeElapsed(0);
+                                }}
+                            >
+                                Start Baking!
+                            </button>
+                        </div>
+                    )}
 
                     {gameState === 'cooking' && (
                         <div>
@@ -874,6 +843,9 @@
                             </button>
                         </div>
                     )}
+                </div>
+            );
+        };
 
         // Initialize the React app
         window.addEventListener('load', () => {
