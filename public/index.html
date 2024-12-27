@@ -9,6 +9,7 @@
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
     
     <style>
+        /* Your existing styles plus new store styles */
         body {
             font-family: system-ui, -apple-system, sans-serif;
             margin: 0;
@@ -77,12 +78,182 @@
             padding: 15px;
             margin: 10px 0;
         }
-    </style>
+
+        .potato-store-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .potato-store {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .store-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .coin-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        .store-items {
+            display: grid;
+            gap: 20px;
+        }
+
+        .store-item {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .store-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-info h3 {
+            margin: 0 0 5px 0;
+        }
+
+        .item-info p {
+            margin: 0 0 10px 0;
+            color: #666;
+        }
+
+        .item-cost {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        /* RGB Lighting Effect */
+        @keyframes rgbBorder {
+            0% { box-shadow: 0 0 10px rgba(255,0,0,0.5); }
+            33% { box-shadow: 0 0 10px rgba(0,255,0,0.5); }
+            66% { box-shadow: 0 0 10px rgba(0,0,255,0.5); }
+            100% { box-shadow: 0 0 10px rgba(255,0,0,0.5); }
+        }
+
+        .rgb-enabled {
+            animation: rgbBorder 5s infinite;
+        }
+      </style>
 </head>
 <body>
     <div id="potato-game-root"></div>
 
     <script type="text/babel">
+        // Store items configuration
+        const STORE_ITEMS = [
+            {
+                id: 'rgbLights',
+                name: 'RGB Lighting',
+                cost: 100,
+                description: 'Add cool RGB lighting effects to your oven!',
+            },
+            {
+                id: 'precisionControl',
+                name: 'Precision Control',
+                cost: 200,
+                description: 'More accurate temperature control (±5°F)',
+            },
+            {
+                id: 'quickPreheat',
+                name: 'Quick Preheat',
+                cost: 300,
+                description: 'Oven preheats 25% faster',
+            },
+            {
+                id: 'autoTimer',
+                name: 'Auto Timer',
+                cost: 400,
+                description: 'Suggests optimal cooking time',
+            }
+        ];
+
+        // Store Component
+        const Store = ({ onClose, spudCoins, upgrades, onPurchase }) => {
+            const items = STORE_ITEMS.map(item => ({
+                ...item,
+                owned: upgrades[item.id]
+            }));
+
+            const handlePurchase = (item) => {
+                if (spudCoins >= item.cost && !item.owned) {
+                    onPurchase(item.id);
+                }
+            };
+
+            return (
+                <div className="potato-store-overlay">
+                    <div className="potato-store">
+                        <div className="store-header">
+                            <h2>Potato Store</h2>
+                            <div className="coin-display">🥔 {spudCoins} coins</div>
+                            <button 
+                                className="potato-button"
+                                onClick={onClose}
+                                style={{ position: 'absolute', right: '10px', top: '10px' }}
+                            >
+                                Close
+                            </button>
+                        </div>
+                        <div className="store-items">
+                            {items.map(item => (
+                                <div key={item.id} className="store-item">
+                                    <div className="item-info">
+                                        <h3>{item.name}</h3>
+                                        <p>{item.description}</p>
+                                        <div className="item-cost">
+                                            Cost: 🥔 {item.cost}
+                                        </div>
+                                    </div>
+                                    <button
+                                        className="potato-button"
+                                        onClick={() => handlePurchase(item)}
+                                        disabled={item.owned || spudCoins < item.cost}
+                                        style={{
+                                            backgroundColor: item.owned ? '#666' : 
+                                                           spudCoins < item.cost ? '#999' : '#4CAF50'
+                                        }}
+                                    >
+                                        {item.owned ? 'Owned' : spudCoins < item.cost ? 'Need more coins' : 'Purchase'}
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
         // Scenario generation function
         const generateScenario = async () => {
             try {
@@ -186,6 +357,13 @@
             const [timeElapsed, setTimeElapsed] = React.useState(0);
             const [scenario, setScenario] = React.useState(null);
             const [isDebugMode, setIsDebugMode] = React.useState(false);
+            const [spudCoins, setSpudCoins] = React.useState(0);
+            const [showStore, setShowStore] = React.useState(false);
+            const [upgrades, setUpgrades] = React.useState({
+                rgbLights: false,
+                precisionControl: false,
+                quickPreheat: false,
+                autoTimer: false
             const [spudCoins, setSpudCoins] = React.useState(0);
             const [showStore, setShowStore] = React.useState(false);
             const [upgrades, setUpgrades] = React.useState({
