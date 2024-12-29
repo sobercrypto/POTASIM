@@ -1,5 +1,4 @@
 const express = require('express');
-const fetch = require('node-fetch');
 const cors = require('cors');
 const path = require('path');
 
@@ -25,6 +24,7 @@ app.use(express.static('public'));
 app.post('/proxy', async (req, res) => {
     try {
         console.log('Received request body:', req.body); // Log incoming request
+        const fetch = (await import('node-fetch')).default;
         const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
