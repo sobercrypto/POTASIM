@@ -773,11 +773,10 @@
 
         // Initialize the React app
         window.addEventListener('load', () => {
-            ReactDOM.render(
-                <PotatoGame />,
-                document.getElementById('potato-game-root')
-            );
+            const root = ReactDOM.createRoot(document.getElementById('potato-game-root'));
+            root.render(<PotatoGame />);
         });
+
     </script>
 </body>
 </html>
