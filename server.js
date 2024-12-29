@@ -1,8 +1,10 @@
-const express = require('express');
+import express from 'express';
 import fetch from 'node-fetch';
-const cors = require('cors');
-const path = require('path');
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url)); // ES module alternative to __dirname
 const app = express();
 
 // Update CORS and add security headers
