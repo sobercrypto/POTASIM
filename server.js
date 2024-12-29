@@ -1,10 +1,7 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const path = require('path');
-
-dotenv.config();
 
 const app = express();
 
@@ -15,7 +12,6 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'x-api-key', 'anthropic-version'],
     credentials: true
 }));
-
 app.use((req, res, next) => {
     // Remove the X-Frame-Options header as it might conflict with CSP
     // Set CSP to allow your domain explicitly
@@ -29,7 +25,6 @@ app.use(express.static('public'));
 app.post('/proxy', async (req, res) => {
     try {
         console.log('Received request body:', req.body); // Log incoming request
-
         const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
@@ -43,9 +38,7 @@ app.post('/proxy', async (req, res) => {
                 messages: req.body.messages
             })
         });
-
         console.log('Anthropic API status:', response.status); // Log API response status
-
         if (!response.ok) {
             const error = await response.text();
             console.error('Anthropic API Error:', error);
@@ -55,7 +48,6 @@ app.post('/proxy', async (req, res) => {
                 statusText: response.statusText
             });
         }
-
         const data = await response.json();
         console.log('Anthropic API response:', data); // Log API response data
         res.json(data);
@@ -68,7 +60,6 @@ app.post('/proxy', async (req, res) => {
         });
     }
 });
-
 
 // Serve index.html for all other routes
 app.get('*', (req, res) => {
