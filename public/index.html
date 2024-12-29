@@ -409,9 +409,8 @@
             return { result: scenario.outcomes.raw, score: totalScore };
         };
 
-        // UtensilTray Component (Assuming it's defined elsewhere)
+        // UtensilTray Component
         const UtensilTray = ({ usedUtensils, setUsedUtensils, gameState }) => {
-            // Component implementation...
             return (
                 <div className="utensil-tray">
                     <h3>Select Utensils:</h3>
@@ -480,51 +479,6 @@
             const [showHint, setShowHint] = React.useState(false);
             const [timeElapsed, setTimeElapsed] = React.useState(0);
             const [scenario, setScenario] = React.useState(null);
-            const [isDebugMode, setIsDebugMode] = React.useState(false);
-
-            const determineOutcome = (temperature, time, size, scenario, usedUtensils) => {
-                const tempDiff = Math.abs(temperature - scenario.idealTemp);
-                const timeDiff = Math.abs(time - scenario.idealTime);
-                const sizeDiff = Math.abs(size - scenario.idealSize);
-
-                // Base scoring (your existing logic)
-                const tempWeight = 0.4;
-                const timeWeight = 0.4;
-                const sizeWeight = 0.2;
-
-                let tempScore = Math.max(0, 100 - (tempDiff * 2));
-                let timeScore = Math.max(0, 100 - (timeDiff * 3));
-                let sizeScore = sizeDiff === 0 ? 100 : sizeDiff === 1 ? 50 : 0;
-
-                // Utensil bonuses
-                if (usedUtensils.fork) {
-                    // Fork helps with even cooking
-                    timeScore *= 1.1;
-                }
-                if (usedUtensils.foil) {
-                    // Foil helps maintain temperature
-                    tempScore *= 1.15;
-                }
-                if (usedUtensils.oil) {
-                    // Oil helps with crispy skin
-                    timeScore *= 1.1;
-                    tempScore *= 1.05;
-                }
-                if (usedUtensils.seasoning) {
-                    // Seasoning adds a flat bonus
-                    sizeScore *= 1.2;
-                }
-
-                const totalScore = (tempScore * tempWeight) + (timeScore * timeWeight) + (sizeScore * sizeWeight);
-                // Determine outcome based on totalScore
-                if (totalScore >= 90) return { result: scenario.outcomes.perfect, score: totalScore };
-                if (totalScore >= 75) return { result: scenario.outcomes.good, score: totalScore };
-                if (totalScore >= 50) return { result: scenario.outcomes.okay, score: totalScore };
-                if (temperature > scenario.idealTemp + 75 || time > scenario.idealTime + 20) {
-                    return { result: scenario.outcomes.burnt, score: totalScore };
-                }
-                return { result: scenario.outcomes.raw, score: totalScore };
-            };
 
             const awardCoins = (score) => {
                 let coins = Math.floor(score / 2); // Base coins from score
@@ -539,7 +493,6 @@
 
                 setSpudCoins(prev => prev + Math.floor(coins));
             };
-            
             
             // Initial scenario fetch
             React.useEffect(() => {
@@ -584,10 +537,11 @@
             const checkResult = () => {
                 setGameState('done');
                 if (!scenario) return;
-                const outcome = determineOutcome(temperature, time, size, scenario, usedUtensils);
+                const outcome = determineOutcome(temperature, time, size, scenario);
                 setResult(outcome.result);
                 awardCoins(outcome.score); // Add this line
             };
+
             const getUtensilSummary = (usedUtensils) => {
                 const used = Object.entries(usedUtensils)
                     .filter(([_, value]) => value)
@@ -603,6 +557,7 @@
 
                 return used.length ? `(${used.join(', ')})` : '';
             };
+
             const resetGame = async () => {
                 setGameState('setup');
                 setResult('');
@@ -622,10 +577,6 @@
                 checkResult();
             };
 
-            const toggleDebugMode = () => {
-                setIsDebugMode(!isDebugMode);
-            };
-
             const remainingTime = time * 60 - timeElapsed;
 
             // Render
@@ -643,17 +594,6 @@
                             >
                                 Store
                             </button>
-                            <button 
-                                onClick={toggleDebugMode}
-                                className="potato-button"
-                                style={{ 
-                                    fontSize: '12px', 
-                                    padding: '4px 8px',
-                                    backgroundColor: isDebugMode ? '#ff4444' : '#4CAF50'
-                                }}
-                            >
-                                {isDebugMode ? 'Debug Mode ON' : 'Debug Mode'}
-                            </button>
                         </div>
                     </div>
 
@@ -667,19 +607,6 @@
                                 setSpudCoins(prev => prev - STORE_ITEMS.find(i => i.id === itemId).cost); // Using STORE_ITEMS instead
                             }}
                         />
-                    )}
-
-                    {isDebugMode && gameState === 'cooking' && (
-                        <div className="potato-alert" style={{ marginBottom: '20px' }}>
-                            <h3>Debug Controls</h3>
-                            <button 
-                                className="potato-button"
-                                onClick={instantComplete}
-                                style={{ backgroundColor: '#ff4444' }}
-                            >
-                                Skip to Result
-                            </button>
-                        </div>
                     )}
 
                     {scenario && gameState === 'setup' && (
@@ -703,14 +630,11 @@
                     
                     {gameState === 'setup' && (
                         <div>
-                            {/* Wrapped all adjacent JSX elements inside a single parent div */}
-                            <div>
-                                <UtensilTray 
-                                    usedUtensils={usedUtensils}
-                                    setUsedUtensils={setUsedUtensils}
-                                    gameState={gameState}
-                                />
-                            </div>
+                            <UtensilTray 
+                                usedUtensils={usedUtensils}
+                                setUsedUtensils={setUsedUtensils}
+                                gameState={gameState}
+                            />
                             
                             <div style={{ marginBottom: '20px' }}>
                                 <label>Oven Temperature: {temperature}°F</label>
@@ -819,7 +743,7 @@
                                 Time: {time} minutes
                                 <br />
                                 Size: {size === 1 ? 'Small' : size === 2 ? 'Medium' : 'Large'}
-                                {isDebugMode && scenario && (
+                                {false && scenario && (
                                     <div>
                                         <br />
                                         <br />
